@@ -17,6 +17,7 @@ Web-Scraping/
 └── scraping/
     ├── .env                  # ログイン情報（Git管理外）
     ├── .gitignore
+    ├── .venv/                # 仮想環境（Git管理外）
     ├── config.yaml           # セレクタ・列名・タイムアウト・ログ設定
     ├── main.py               # エントリーポイント
     ├── requirements.txt
@@ -26,6 +27,11 @@ Web-Scraping/
         ├── search.py         # 検索・結果取得
         └── csv_handler.py    # CSV読み込み・保存
 ```
+
+## 開発方針
+
+- 仮想環境は `venv + pip` で構築（標準ライブラリのみ、追加ツール不要）
+- uvやruffは使用しない（他の人が使いやすいようにレガシー寄りで統一）
 
 ## 設計ルール
 
@@ -43,12 +49,13 @@ Web-Scraping/
 ## 実行方法
 
 ```bash
-make install   # 初回のみ
-make run       # 実行
+make setup   # 初回のみ（仮想環境作成 + パッケージインストール）
+make run     # 実行
 ```
 
 ## 注意事項
 
 - `.env` は `.gitignore` で除外済み。絶対にコミットしない
+- `.venv/` は `.gitignore` で除外済み
 - `logs/` ディレクトリも `.gitignore` で除外済み
 - ChromeDriverは `webdriver-manager` が自動管理するため手動インストール不要

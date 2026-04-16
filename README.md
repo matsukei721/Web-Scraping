@@ -17,10 +17,10 @@ git clone https://github.com/matsukei721/Web-Scraping.git
 cd Web-Scraping
 ```
 
-### 2. パッケージをインストール
+### 2. 仮想環境を作成してパッケージをインストール
 
 ```bash
-make install
+make setup
 ```
 
 ### 3. `.env` を編集
@@ -73,6 +73,7 @@ Web-Scraping/
 └── scraping/
     ├── .env                  # ログイン情報（Git管理外）
     ├── .gitignore
+    ├── .venv/                # 仮想環境（Git管理外）
     ├── config.yaml           # セレクタ・列名・タイムアウト設定
     ├── main.py               # エントリーポイント
     ├── requirements.txt
