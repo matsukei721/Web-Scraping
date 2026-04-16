@@ -1,0 +1,22 @@
+# 環境変数ファイル（機密情報）
+.env
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+*.pyo
+
+# 仮想環境
+.venv/
+venv/
+env/
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# ChromeDriver キャッシュ
+.wdm/
+
+# ログファイル
+logs/
