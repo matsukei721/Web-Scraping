@@ -5,6 +5,7 @@ import logging.handlers
 import yaml
 from dotenv import load_dotenv
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
@@ -52,11 +53,12 @@ def setup_logging(config: dict) -> logging.Logger:
 
 def build_driver(config: dict) -> webdriver.Chrome:
     """ChromeDriverを自動更新して起動する"""
-    options = webdriver.ChromeOptions()
-    # ヘッドレスで実行したい場合は下記のコメントを外す
-    # options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    options = Options()
+    options.add_argument("--headless")           # ブラウザ非表示（バックグラウンド実行）
+    options.add_argument("--start-maximized")    # フルスクリーン起動
+    options.add_argument("--no-sandbox")         # Linux環境で必要な場合あり
+    options.add_argument("--disable-gpu")        # headless時にセットで指定
+    options.add_argument("--window-size=1920,1080")  # 解像度指定
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
