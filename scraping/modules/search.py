@@ -27,8 +27,10 @@ def search_by_id(driver: WebDriver, target_id: str, config: dict, logger: loggin
         search_input.send_keys(target_id)
         logger.debug(f"ID={target_id} を検索欄に入力しました")
 
-        # 検索ボタンをクリック
-        search_btn = driver.find_element(By.CSS_SELECTOR, sel["search"]["submit_button"])
+        # 検索ボタン（クリック可能になるまで待機）
+        search_btn = wait.until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, sel["search"]["submit_button"]))
+        )
         search_btn.click()
 
         # 結果エリアが表示されるまで待機（最大 result_wait 秒）
@@ -36,6 +38,12 @@ def search_by_id(driver: WebDriver, target_id: str, config: dict, logger: loggin
             EC.visibility_of_element_located((By.CSS_SELECTOR, sel["search"]["result_area"]))
         )
         result_text = result_area.text.strip()
+
+        # 結果エリアが空の場合は結果なしとして扱う
+        if not result_text:
+            logger.warning(f"ID={target_id} → 結果エリアが空です")
+            return not_found_text
+
         logger.info(f"ID={target_id} → 結果取得: {result_text[:50]}")
         return result_text
 

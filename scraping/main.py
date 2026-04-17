@@ -26,7 +26,15 @@ from modules.notifier import send_slack
 def load_config(path: str = "config.yaml") -> dict:
     """config.yamlを読み込んで設定辞書を返す"""
     with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        config = yaml.safe_load(f)
+
+    # 必須キーの存在チェック
+    required_keys = ["timeout", "csv", "retry", "logging", "slack", "selectors"]
+    missing = [k for k in required_keys if k not in config]
+    if missing:
+        raise ValueError(f"config.yaml に必須キーが不足しています: {missing}")
+
+    return config
 
 
 def setup_logging(config: dict) -> logging.Logger:
@@ -88,11 +96,11 @@ def search_with_retry(driver: WebDriver, target_id: str, config: dict, logger: l
                 logger.warning(f"ID={target_id} → リトライ {attempt}/{max_attempts}回目: {type(e).__name__}")
                 time.sleep(wait_seconds)
             else:
-                logger.error(f"ID={target_id} → {max_attempts}回試行しましたが失敗しました")
+                logger.error(f"ID={target_id} → {max_attempts}回試行しましたが失敗しました", exc_info=True)
                 raise
-        except Exception as e:
+        except Exception:
             # セレクタ不一致・権限エラーなど即時失敗すべきエラーはリトライしない
-            logger.error(f"ID={target_id} → リトライ不可のエラー: {type(e).__name__}")
+            logger.error(f"ID={target_id} → リトライ不可のエラーが発生しました", exc_info=True)
             raise
 
 
@@ -126,24 +134,26 @@ def main() -> None:
     result_column = config["csv"]["result_column"]
     batch_size = config["csv"].get("batch_size", 10)
 
-    # 対象CSVファイルを特定して読み込む
-    csv_file = find_csv_file(config, logger, target_date=args.date)
-    df = load_csv(config, logger, csv_file)
-
-    if df.empty:
-        logger.warning("CSVにデータがありません。処理を終了します。")
-        sys.exit(0)
-
-    # 実行レポート用カウンター
-    count_success = 0
-    count_not_found = 0
-    count_error = 0
-    count_skip = 0
-
-    # build_driver失敗時のNameErrorを防ぐ
+    # build_driver・find_csv_file・load_csv 失敗時の NameError を防ぐ
     driver: WebDriver | None = None
+    df: pd.DataFrame | None = None
+    csv_file: str | None = None
 
     try:
+        # 対象CSVファイルを特定して読み込む
+        csv_file = find_csv_file(config, logger, target_date=args.date)
+        df = load_csv(config, logger, csv_file)
+
+        if df.empty:
+            logger.warning("CSVにデータがありません。処理を終了します。")
+            sys.exit(0)
+
+        # 実行レポート用カウンター
+        count_success = 0
+        count_not_found = 0
+        count_error = 0
+        count_skip = 0
+
         driver = build_driver(config)
 
         # ログイン → メニュークリック
@@ -210,7 +220,8 @@ def main() -> None:
 
     except Exception:
         logger.exception("予期しないエラーが発生しました")
-        save_csv(df, config, logger, csv_file)
+        if df is not None and csv_file is not None:
+            save_csv(df, config, logger, csv_file)
 
         # Slack通知（エラー）
         if config["slack"].get("notify_on_error", False):

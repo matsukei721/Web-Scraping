@@ -25,13 +25,13 @@ def login(driver: WebDriver, config: dict, logger: logging.Logger) -> None:
     id_field.clear()
     id_field.send_keys(login_id)
 
-    # パスワード入力
-    password_field = driver.find_element(By.CSS_SELECTOR, sel["password_field"])
+    # パスワード入力（explicit waitで確実に取得）
+    password_field = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, sel["password_field"])))
     password_field.clear()
     password_field.send_keys(login_password)
 
-    # ログインボタンクリック
-    submit_button = driver.find_element(By.CSS_SELECTOR, sel["submit_button"])
+    # ログインボタン（クリック可能になるまで待機）
+    submit_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, sel["submit_button"])))
     submit_button.click()
 
     # ページ遷移の完了を待機
