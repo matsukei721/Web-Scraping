@@ -6,11 +6,17 @@ timeout:
 
 # CSVファイルの設定
 csv:
-  input_file: "input.csv"      # 入力CSVファイルパス
+  input_dir: "."               # CSVファイルが置かれているディレクトリ
+  file_prefix: "input_"        # 対象ファイル名のプレフィックス（例: input_20240101.csv）
   id_column: "ID"              # 処理対象のID列名
   result_column: "結果"        # 結果を書き込む列名
   not_found_text: "ありません"  # 結果が見つからない場合に書き込むテキスト
   encoding: "utf-8-sig"        # CSVのエンコーディング（BOM付きUTF-8）
+
+# リトライ設定
+retry:
+  max_attempts: 3       # 最大リトライ回数
+  wait_seconds: 5       # リトライ前の待機時間（秒）
 
 # ロギング設定
 logging:
@@ -20,6 +26,12 @@ logging:
   file: "logs/scraping.log"   # ログファイルパス（空文字にするとファイル出力なし）
   max_bytes: 5242880          # ログローテーションのサイズ上限（5MB）
   backup_count: 3             # ローテーション保持数
+
+# Slack通知設定
+slack:
+  enabled: true               # Slack通知を使用するか（true / false）
+  notify_on_complete: true    # 全件完了時に通知
+  notify_on_error: true       # エラー発生時に通知
 
 # セレクタ設定（後から差し替えやすいように一元管理）
 selectors:
