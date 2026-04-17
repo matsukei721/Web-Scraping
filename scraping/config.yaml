@@ -12,6 +12,7 @@ csv:
   result_column: "結果"        # 結果を書き込む列名
   not_found_text: "ありません"  # 結果が見つからない場合に書き込むテキスト
   encoding: "utf-8-sig"        # CSVのエンコーディング（BOM付きUTF-8）
+  batch_size: 10               # N行ごとにCSVを中間保存（クラッシュ対策）
 
 # リトライ設定
 retry:

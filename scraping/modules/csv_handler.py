@@ -91,6 +91,12 @@ def load_csv(config: dict, logger: logging.Logger, file_path: str) -> pd.DataFra
     df = pd.read_csv(file_path, encoding=encoding, dtype=str)
     logger.info(f"CSVを読み込みました: {file_path}（{len(df)}行）")
 
+    # ID列に重複がある場合は警告
+    id_column = config["csv"]["id_column"]
+    if id_column in df.columns and df[id_column].duplicated().any():
+        dupes = df[id_column][df[id_column].duplicated()].tolist()
+        logger.warning(f"ID列に重複があります: {dupes}")
+
     # 結果列が存在しない場合は空列を追加
     result_column = config["csv"]["result_column"]
     if result_column not in df.columns:

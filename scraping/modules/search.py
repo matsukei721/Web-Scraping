@@ -1,11 +1,12 @@
 import logging
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 
-def search_by_id(driver, target_id: str, config: dict, logger: logging.Logger) -> str:
+def search_by_id(driver: WebDriver, target_id: str, config: dict, logger: logging.Logger) -> str:
     """
     検索欄にIDを入力して結果を取得する。
     1分以内に結果が見つかればその内容を返す。

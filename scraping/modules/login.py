@@ -1,11 +1,12 @@
 import os
 import logging
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-def login(driver, config: dict, logger: logging.Logger) -> None:
+def login(driver: WebDriver, config: dict, logger: logging.Logger) -> None:
     """ログインページにアクセスしてログインを実行する"""
     login_url = os.getenv("LOGIN_URL")
     login_id = os.getenv("LOGIN_ID")
@@ -38,7 +39,7 @@ def login(driver, config: dict, logger: logging.Logger) -> None:
     logger.info("ログイン成功")
 
 
-def click_menu(driver, config: dict, logger: logging.Logger) -> None:
+def click_menu(driver: WebDriver, config: dict, logger: logging.Logger) -> None:
     """ログイン後のメニューをクリックして対象ページへ遷移する"""
     timeout = config["timeout"]["page_load"]
     menu_selector = config["selectors"]["menu"]["target_link"]

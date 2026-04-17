@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
@@ -58,7 +59,7 @@ def setup_logging(config: dict) -> logging.Logger:
     return logger
 
 
-def build_driver(config: dict) -> webdriver.Chrome:
+def build_driver(config: dict) -> WebDriver:
     """ChromeDriverを自動更新して起動する"""
     options = Options()
     options.add_argument("--headless")           # ブラウザ非表示（バックグラウンド実行）
@@ -73,7 +74,7 @@ def build_driver(config: dict) -> webdriver.Chrome:
     return driver
 
 
-def search_with_retry(driver, target_id: str, config: dict, logger: logging.Logger) -> str:
+def search_with_retry(driver: WebDriver, target_id: str, config: dict, logger: logging.Logger) -> str:
     """リトライ処理付きで検索を実行する（一時的なエラーのみリトライ）"""
     max_attempts = config["retry"]["max_attempts"]
     wait_seconds = config["retry"]["wait_seconds"]
@@ -84,14 +85,14 @@ def search_with_retry(driver, target_id: str, config: dict, logger: logging.Logg
         except RETRYABLE_EXCEPTIONS as e:
             # タイムアウト・要素再描画など一時的な問題はリトライ
             if attempt < max_attempts:
-                logger.warning(f"ID={target_id} → リトライ {attempt}/{max_attempts}回目: {e}")
+                logger.warning(f"ID={target_id} → リトライ {attempt}/{max_attempts}回目: {type(e).__name__}")
                 time.sleep(wait_seconds)
             else:
-                logger.error(f"ID={target_id} → {max_attempts}回試行しましたが失敗しました: {e}")
+                logger.error(f"ID={target_id} → {max_attempts}回試行しましたが失敗しました")
                 raise
         except Exception as e:
             # セレクタ不一致・権限エラーなど即時失敗すべきエラーはリトライしない
-            logger.error(f"ID={target_id} → リトライ不可のエラーが発生しました: {type(e).__name__}: {e}")
+            logger.error(f"ID={target_id} → リトライ不可のエラー: {type(e).__name__}")
             raise
 
 
@@ -123,6 +124,7 @@ def main() -> None:
 
     id_column = config["csv"]["id_column"]
     result_column = config["csv"]["result_column"]
+    batch_size = config["csv"].get("batch_size", 10)
 
     # 対象CSVファイルを特定して読み込む
     csv_file = find_csv_file(config, logger, target_date=args.date)
@@ -138,10 +140,12 @@ def main() -> None:
     count_error = 0
     count_skip = 0
 
-    # ChromeDriverを起動
-    driver = build_driver(config)
+    # build_driver失敗時のNameErrorを防ぐ
+    driver: WebDriver | None = None
 
     try:
+        driver = build_driver(config)
+
         # ログイン → メニュークリック
         login(driver, config, logger)
         click_menu(driver, config, logger)
@@ -168,12 +172,17 @@ def main() -> None:
                     count_success += 1
 
             except Exception:
-                # リトライ全滅時はエラーとして記録しCSVに書き込み処理を継続
+                # リトライ全滅時はエラーとして記録し処理を継続
                 df.at[index, result_column] = "エラー"
                 count_error += 1
 
-            # 1行処理するたびにCSVを中間保存（クラッシュ対策）
-            save_csv(df, config, logger, csv_file)
+            # batch_size行ごとにCSVを中間保存（クラッシュ対策）
+            processed = count_success + count_not_found + count_error
+            if processed % batch_size == 0:
+                save_csv(df, config, logger, csv_file)
+
+        # 全行処理後に最終保存
+        save_csv(df, config, logger, csv_file)
 
         # 実行レポートをログに出力
         total = count_success + count_not_found + count_error
@@ -199,19 +208,20 @@ def main() -> None:
 
         logger.info("全行の処理が完了しました。正常終了します。")
 
-    except Exception as e:
-        logger.exception(f"予期しないエラーが発生しました: {e}")
+    except Exception:
+        logger.exception("予期しないエラーが発生しました")
         save_csv(df, config, logger, csv_file)
 
         # Slack通知（エラー）
         if config["slack"].get("notify_on_error", False):
-            send_slack(f":x: スクレイピング中に予期しないエラーが発生しました\n{e}", config, logger)
+            send_slack(":x: スクレイピング中に予期しないエラーが発生しました。ログを確認してください。", config, logger)
 
         sys.exit(1)
 
     finally:
-        driver.quit()
-        logger.info("ブラウザを終了しました")
+        if driver is not None:
+            driver.quit()
+            logger.info("ブラウザを終了しました")
 
 
 if __name__ == "__main__":
